@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -62,8 +63,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 		ProblemType problemType = ProblemType.ENTIDADE_EM_USO;
 		String detail = ex.getMessage();
 
-		Problem problem = createProblemBuilder(status, problemType, detail)
-				.userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL)
+		Problem problem = createProblemBuilder(status, problemType, detail).userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL)
 				.build();
 
 		return handleExceptionInternal(ex, problem, new HttpHeaders(), status, request);
@@ -74,31 +74,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpStatus status, WebRequest request) {
 
 		if (body == null) {
-			body = Problem.builder()
-					.timestamp(LocalDateTime.now())
-					.title(status.getReasonPhrase())
-					.status(status.value())
-					.userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL)
-					.build();
+			body = Problem.builder().timestamp(LocalDateTime.now()).title(status.getReasonPhrase())
+					.status(status.value()).userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL).build();
 		} else if (body instanceof String) {
-			body = Problem.builder()
-					.timestamp(LocalDateTime.now())
-					.title((String) body)
-					.status(status.value())
-					.userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL)
-					.build();
+			body = Problem.builder().timestamp(LocalDateTime.now()).title((String) body).status(status.value())
+					.userMessage(MSG_ERRO_GENERICA_USUARIO_FINAL).build();
 		}
 
 		return super.handleExceptionInternal(ex, body, headers, status, request);
 	}
 
 	private Problem.ProblemBuilder createProblemBuilder(HttpStatus status, ProblemType problemType, String detail) {
-		return Problem.builder()
-				.timestamp(LocalDateTime.now())
-				.status(status.value())
-				.type(problemType.getUri())
-				.title(problemType.getTitle())
-				.detail(detail);
+		return Problem.builder().timestamp(LocalDateTime.now()).status(status.value()).type(problemType.getUri())
+				.title(problemType.getTitle()).detail(detail);
 	}
 
 	@Override
@@ -202,6 +190,18 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 		Problem problem = createProblemBuilder(status, problemType, detail).userMessage(detail).build();
 		return handleExceptionInternal(ex, problem, new HttpHeaders(), status, request);
 
+	}
+	
+	@Override
+	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+			HttpHeaders headers, HttpStatus status, WebRequest request) {
+
+		ProblemType problemType = ProblemType.DADOS_INVALIDOS;
+		String detail = "Um ou mais campos estão inválidos. Faça o preenchimento correto e tente novamente";
+		
+		Problem problem = createProblemBuilder(status, problemType, detail).userMessage(detail).build();
+		
+		return handleExceptionInternal(ex,problem, headers, status, request);
 	}
 
 }
